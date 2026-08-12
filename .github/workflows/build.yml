@@ -1,0 +1,39 @@
+name: Build and Package Extension
+
+on:
+  push:
+    branches: ['main', 'master']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          if [ -f package.json ]; then
+            npm install
+          fi
+
+      - name: Create ZIP archive for Chrome Extension
+        run: |
+          zip -r linkedin-extension.zip . \
+            -x "*.git*" \
+            -x "node_modules*" \
+            -x "*.github*" \
+            -x "*.DS_Store"
+
+      - name: Upload built extension artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: linkedin-connect-automation-v1.0.0
+          path: linkedin-extension.zip

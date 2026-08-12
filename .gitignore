@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Logs and databases
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Environment variables / local settings
+.env
+.env.local
+
+# Build artifacts / packaged extensions
+*.zip
+dist/
+build/
+
+# IDE specific files (VS Code, WebStorm, etc.)
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
