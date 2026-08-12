@@ -1,5 +1,32 @@
 let lastProcessedCard = null
 
+if (!window.__isTrustedListenerInstalled) {
+  window.__isTrustedListenerInstalled = true
+  ;['mousedown', 'mouseup', 'click'].forEach(eventType => {
+    document.addEventListener(
+      eventType,
+      e => {
+        const target =
+          e.target.closest('button, a, div[role="button"]') || e.target
+        const isTrusted = e.isTrusted
+
+        console.log(
+          `%c[CDP VERIFIER]%c ${e.type.toUpperCase()} %c| isTrusted: %c${isTrusted}%c | target:`,
+          'color: #00bcd4; font-weight: bold;',
+          'color: #e0e0e0; font-weight: bold;',
+          'color: #888;',
+          isTrusted
+            ? 'color: #00e676; font-weight: bold;'
+            : 'color: #ff1744; font-weight: bold;',
+          'color: inherit;',
+          target
+        )
+      },
+      true
+    )
+  })
+}
+
 function querySelectorAllDeep (selector, root = document) {
   let results = Array.from(root.querySelectorAll(selector))
   const allElements = root.querySelectorAll('*')
