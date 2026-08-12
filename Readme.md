@@ -6,13 +6,14 @@ A professional browser extension for the secure automation of networking and lea
 
 ## 📋 Table of Contents
 
-1. [Commit History](#commit-history)
-2. [Project Architecture & Directory Structure](#project-architecture--directory-structure)
-3. [Technical Approaches & Click Simulation Trade-offs](#technical-approaches--click-simulation-trade-offs)
-4. [Modal Handling & Exception Management](#modal-handling--exception-management)
-5. [Behavioral Fingerprinting & LinkedIn Anti-Fraud Mitigations](#behavioral-fingerprinting--linkedin-anti-fraud-mitigations)
-6. [Rate Limiting & Limits Management](#rate-limiting--limits-management)
-7. [Stability & Service Worker Resilience](#stability--service-worker-resilience)
+1. [Commit History](#-commit-history)
+2. [Project Architecture & Directory Structure](#-project-architecture--directory-structure)
+3. [Technical Approaches & Click Simulation Trade-offs](#-technical-approaches--click-simulation-trade-offs)
+4. [Modal Handling & Exception Management](#-modal-handling--exception-management)
+5. [Behavioral Fingerprinting & LinkedIn Anti-Fraud Mitigations](#-behavioral-fingerprinting--linkedin-anti-fraud-mitigations)
+6. [Rate Limiting & Limits Management](#%EF%B8%8F-rate-limiting--limits-management)
+7. [Stability & Service Worker Resilience](#%EF%B8%8F-stability--service-worker-resilience)
+8. [CI/CD Pipeline & Artifacts](#-cicd-pipeline--artifacts)
 
 ---
 
@@ -183,3 +184,10 @@ async function handleModal() {
 - **Service Worker Lifecycle Management:** Since Manifest V3 service workers terminate after ~30 seconds of inactivity, the automation run is fully resumable.
 - **State Persistence:** Critical runtime states (bot execution status, active tab ID, current account ID, and counters) are continuously synchronized and stored in `chrome.storage.local` via `StorageService`.
 - **Automatic State Restoration:** Upon service worker restart or browser/tab reboot, the initialization hook checks the stored state and automatically restores active execution (`RUNNING`) or recovers metrics without losing progress.
+
+---
+
+## 🔗 CI/CD Pipeline & Artifacts
+
+- **GitHub Actions Run:** [View Successful Workflow Run](https://github.com/Bodia06/lec/actions/runs/31623162036)
+- **Download Build:** The artifact containing the built extension package (`.zip`) is available for download at the bottom of the specified run page (in the _Artifacts_ section).
