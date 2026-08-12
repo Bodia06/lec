@@ -1,0 +1,32 @@
+{
+	"manifest_version": 3,
+	"name": "LinkedIn Connect Automation",
+	"version": "1.0.0",
+	"description": "Automated trusted LinkedIn connect requests using Chrome DevTools Protocol.",
+	"permissions": ["debugger", "storage", "activeTab", "scripting"],
+	"host_permissions": ["https://www.linkedin.com/*"],
+	"background": {
+		"service_worker": "background/service_worker.js",
+		"type": "module"
+	},
+	"action": {
+		"default_popup": "popup/popup.html",
+		"default_title": "LinkedIn Automation",
+		"default_icon": {
+			"16": "icons/16i.png"
+		}
+	},
+	"content_scripts": [
+		{
+			"matches": ["https://www.linkedin.com/*"],
+			"js": ["content/telemetry.js", "content/content_script.js"],
+			"run_at": "document_start"
+		}
+	],
+	"web_accessible_resources": [
+		{
+			"resources": ["content/*", "icons/*", "background/*"],
+			"matches": ["https://www.linkedin.com/*"]
+		}
+	]
+}
