@@ -10,7 +10,7 @@ A professional browser extension for the secure automation of networking and lea
 2. [Project Architecture & Directory Structure](#-project-architecture--directory-structure)
 3. [Technical Approaches & Click Simulation Trade-offs](#-technical-approaches--click-simulation-trade-offs)
 4. [Modal Handling & Exception Management](#-modal-handling--exception-management)
-5. [Behavioral Fingerprinting & LinkedIn Anti-Fraud Mitigations](#-behavioral-fingerprinting--linkedin-anti-fraud-mitigations)
+5. [Behavioral Fingerprinting & LinkedIn Anti-Fraud Mitigations](#anti-fraud)
 6. [Rate Limiting & Limits Management](#%EF%B8%8F-rate-limiting--limits-management)
 7. [Stability & Service Worker Resilience](#%EF%B8%8F-stability--service-worker-resilience)
 8. [CI/CD Pipeline & Artifacts](#-cicd-pipeline--artifacts)
@@ -98,6 +98,8 @@ During the automated sending of connection requests on LinkedIn, the interface f
 | **Unknown Modal**                                | A modal window appeared, but its text does not match known templates.       | Automatically closes the window for safety (`UNKNOWN_MODAL`) and records it in the system logs.        |
 
 ---
+
+<a name="anti-fraud"></a>
 
 ## 🕵️‍♂️ Behavioral Fingerprinting & LinkedIn Anti-Fraud Mitigations
 
