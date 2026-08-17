@@ -4,31 +4,7 @@
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<meta http-equiv="X-UA-Compatible" content="ie=edge" />
-		<title>LinkedIn Auto Connect | Professional Automation Tool</title>
-		<meta
-			name="title"
-			content="LinkedIn Auto Connect | Professional Automation Tool"
-		/>
-		<meta
-			name="description"
-			content="Boost your professional networking and lead generation with the most secure LinkedIn Auto Connect automation extension."
-		/>
-		<meta
-			name="keywords"
-			content="LinkedIn automation, auto connect, networking tool, lead generation, chrome extension"
-		/>
-		<meta name="author" content="LinkedIn Auto Connect Team" />
-		<meta name="robots" content="noindex, nofollow" />
-		<meta property="og:type" content="website" />
-		<meta
-			property="og:title"
-			content="LinkedIn Auto Connect | Professional Automation Tool"
-		/>
-		<meta
-			property="og:description"
-			content="Boost your professional networking and lead generation with the most secure LinkedIn Auto Connect automation extension."
-		/>
-		<meta name="theme-color" content="#0a66c2" />
+		<title>LinkedIn Automation Tool</title>
 		<link rel="stylesheet" href="popup.css" />
 	</head>
 	<body>
@@ -43,24 +19,65 @@
 						</svg>
 					</div>
 					<div class="brand-title">
-						<h1>Auto Connect</h1>
-						<span>LinkedIn Automation</span>
+						<h1>LinkedIn Bot</h1>
+						<span>Smart Automation</span>
 					</div>
 				</div>
-				<div
-					class="status-badge"
-					id="statusBadge"
-					role="status"
-					aria-live="polite"
-				>
+				<div class="status-badge" id="statusBadge" role="status">
 					<span class="status-dot"></span>
 					<span id="statusText">Ready</span>
 				</div>
 			</header>
 
+			<section class="mode-selection" aria-label="Automation Mode">
+				<div class="mode-toggle">
+					<button
+						type="button"
+						class="mode-btn active"
+						data-mode="CONNECT"
+						id="modeConnectBtn"
+					>
+						<svg
+							width="14"
+							height="14"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+							<circle cx="8.5" cy="7.5" r="4"></circle>
+							<line x1="20" y1="8" x2="20" y2="14"></line>
+							<line x1="23" y1="11" x2="17" y2="11"></line>
+						</svg>
+						Connect
+					</button>
+					<button
+						type="button"
+						class="mode-btn"
+						data-mode="LIKE"
+						id="modeLikeBtn"
+					>
+						<svg
+							width="14"
+							height="14"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<path
+								d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"
+							></path>
+						</svg>
+						Like Posts
+					</button>
+				</div>
+			</section>
+
 			<section class="stats-card" aria-label="Statistics">
 				<div class="stats-info">
-					<span class="stats-label">Daily Limit Usage</span>
+					<span class="stats-label" id="statsLabel">Daily Connect Limit</span>
 					<span class="stats-numbers">
 						<strong id="dailyCount">0</strong>
 						<span class="stats-total">/ <span id="totalLimit">10</span></span>
@@ -78,7 +95,7 @@
 			</section>
 
 			<section class="controls" aria-label="Control Panel">
-				<button id="startBtn" class="btn btn-primary" aria-label="Start Bot">
+				<button id="startBtn" class="btn btn-primary">
 					<svg
 						width="15"
 						height="15"
@@ -86,18 +103,12 @@
 						fill="none"
 						stroke="currentColor"
 						stroke-width="2.5"
-						aria-hidden="true"
 					>
 						<polygon points="5 3 19 12 5 21 5 3"></polygon>
 					</svg>
 					Start Bot
 				</button>
-				<button
-					id="stopBtn"
-					class="btn btn-secondary"
-					disabled
-					aria-label="Stop Bot"
-				>
+				<button id="stopBtn" class="btn btn-secondary" disabled>
 					<svg
 						width="15"
 						height="15"
@@ -105,7 +116,6 @@
 						fill="none"
 						stroke="currentColor"
 						stroke-width="2.5"
-						aria-hidden="true"
 					>
 						<rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
 					</svg>
@@ -116,21 +126,14 @@
 			<section class="terminal-section" aria-label="Execution Logs">
 				<div class="terminal-header">
 					<div class="terminal-title-group">
-						<span class="terminal-dot red" aria-hidden="true"></span>
-						<span class="terminal-dot yellow" aria-hidden="true"></span>
-						<span class="terminal-dot green" aria-hidden="true"></span>
+						<span class="terminal-dot red"></span>
+						<span class="terminal-dot yellow"></span>
+						<span class="terminal-dot green"></span>
 						<span>Live Logs</span>
 					</div>
-					<button
-						id="clearLog"
-						class="clear-btn"
-						title="Clear Logs"
-						aria-label="Clear Logs"
-					>
-						Clear
-					</button>
+					<button id="clearLog" class="clear-btn">Clear</button>
 				</div>
-				<div id="log" class="terminal-body" tabindex="0" aria-live="polite">
+				<div id="log" class="terminal-body" tabindex="0">
 					System logs will appear here...
 				</div>
 			</section>

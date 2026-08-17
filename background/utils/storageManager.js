@@ -1,12 +1,15 @@
 export const StorageManager = {
-  async getStats (accountId = 'default_account') {
+  async getStats (accountId = 'default_account', mode = 'CONNECT') {
     const today = new Date().toISOString().split('T')[0]
-    const storageKey = `stats_${accountId}`
+    const storageKey = `stats_${accountId}_${mode}`
 
-    const data = await chrome.storage.local.get([storageKey, 'lastDate'])
+    const data = await chrome.storage.local.get([
+      storageKey,
+      `lastDate_${mode}`
+    ])
     const accountData = data[storageKey] || { dailyCount: 0, weeklyCount: 0 }
 
-    if (data.lastDate !== today) {
+    if (data[`lastDate_${mode}`] !== today) {
       const newStats = {
         dailyCount: 0,
         weeklyCount: accountData.weeklyCount || 0,
@@ -14,7 +17,7 @@ export const StorageManager = {
       }
       await chrome.storage.local.set({
         [storageKey]: newStats,
-        lastDate: today
+        [`lastDate_${mode}`]: today
       })
       return newStats
     }
@@ -26,9 +29,9 @@ export const StorageManager = {
     }
   },
 
-  async incrementStats (accountId = 'default_account') {
-    const stats = await this.getStats(accountId)
-    const storageKey = `stats_${accountId}`
+  async incrementStats (accountId = 'default_account', mode = 'CONNECT') {
+    const stats = await this.getStats(accountId, mode)
+    const storageKey = `stats_${accountId}_${mode}`
 
     await chrome.storage.local.set({
       [storageKey]: {

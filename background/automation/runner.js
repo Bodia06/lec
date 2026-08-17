@@ -43,34 +43,54 @@ function getGaussianDelay (
   const v = Math.random()
   const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v)
   const mean = (minMs + maxMs) / 2
-  const stdDev = (minMs - minMs) / 6
+  const stdDev = (maxMs - minMs) / 6
   return Math.max(minMs, Math.min(maxMs, mean + z * stdDev))
 }
 
-async function recalculateDynamicLimits (tabId, currentAccountId, hasAdOffer) {
+async function recalculateDynamicLimits (
+  tabId,
+  currentAccountId,
+  hasAdOffer,
+  mode = 'CONNECT'
+) {
   const isWarmedUpOrPaid = !hasAdOffer
-  const minLimit = isWarmedUpOrPaid ? 20 : 5
-  const maxLimit = isWarmedUpOrPaid ? 30 : 10
+  const isLike = mode === 'LIKE'
+
+  const minLimit = isLike
+    ? isWarmedUpOrPaid
+      ? 35
+      : 15
+    : isWarmedUpOrPaid
+    ? 20
+    : 5
+  const maxLimit = isLike
+    ? isWarmedUpOrPaid
+      ? 60
+      : 25
+    : isWarmedUpOrPaid
+    ? 30
+    : 10
 
   const dynamicMaxDaily =
     Math.floor(Math.random() * (maxLimit - minLimit + 1)) + minLimit
-  const maxWeekly = CONFIG.DEFAULT_MAX_WEEKLY
+  const maxWeekly = isLike ? 250 : CONFIG.DEFAULT_MAX_WEEKLY
 
+  const modeKey = mode.toLowerCase()
   await StorageService.set({
-    maxDaily: dynamicMaxDaily,
-    maxWeekly,
+    [`maxDaily_${modeKey}`]: dynamicMaxDaily,
+    [`maxWeekly_${modeKey}`]: maxWeekly,
     isWarmedUp: isWarmedUpOrPaid
   })
 
   sendLog(
-    `[INFO] Recalculated new limit for [${currentAccountId}] (${
+    `[INFO] [${mode}] Recalculated new limit for [${currentAccountId}] (${
       isWarmedUpOrPaid ? 'warmed up / premium' : 'new / basic'
-    }): daily limit = ${dynamicMaxDaily}, weekly = ${maxWeekly}`
+    }): daily = ${dynamicMaxDaily}, weekly = ${maxWeekly}`
   )
   return { maxDaily: dynamicMaxDaily, maxWeekly }
 }
 
-async function initializeAutomationAccount (tabId) {
+async function initializeAutomationAccount (tabId, mode = 'CONNECT') {
   sendLog(
     '[INFO] Gathering complete account and subscription info before starting...'
   )
@@ -89,14 +109,16 @@ async function initializeAutomationAccount (tabId) {
   const currentAccountName = res.name
   const hasAdOffer = res.hasPremiumOffer || false
 
-  const existingStorage = await StorageService.get(['maxDaily'])
-  let dynamicLimit = existingStorage.maxDaily
+  const modeKey = mode.toLowerCase()
+  const existingStorage = await StorageService.get([`maxDaily_${modeKey}`])
+  let dynamicLimit = existingStorage[`maxDaily_${modeKey}`]
 
   if (!dynamicLimit) {
     const limitsRes = await recalculateDynamicLimits(
       tabId,
       currentAccountId,
-      hasAdOffer
+      hasAdOffer,
+      mode
     )
     dynamicLimit = limitsRes.maxDaily
   }
@@ -104,51 +126,54 @@ async function initializeAutomationAccount (tabId) {
   await StorageService.set({
     cachedAccountId: currentAccountId,
     cachedAccountName: currentAccountName,
-    maxDaily: dynamicLimit,
+    [`maxDaily_${modeKey}`]: dynamicLimit,
     currentAccountId
   })
 
-  const allStatsData = (await StorageService.get(['stats_users'])) || {}
-  const statsUsers = allStatsData.stats_users || {}
-  if (!statsUsers[currentAccountId]) {
-    statsUsers[currentAccountId] = { name: currentAccountName }
-    await StorageService.set({ stats_users: statsUsers })
-  }
-
-  const stats = await StorageManager.getStats(currentAccountId)
+  const stats = await StorageManager.getStats(currentAccountId, mode)
   sendLog(
-    `[INFO] Account fully verified: ${currentAccountName} (${currentAccountId}). Sent today: ${stats.dailyCount}. Daily limit: ${dynamicLimit}`
+    `[INFO] Account fully verified: ${currentAccountName} (${currentAccountId}). Count today: ${stats.dailyCount}. Daily limit: ${dynamicLimit}`
   )
 
   return { currentAccountId, dynamicLimit }
 }
 
-async function handleSearchPagination (tabId) {
+async function handleSearchPagination (tabId, mode = 'CONNECT') {
+  const isLike = mode === 'LIKE'
   sendLog(
-    '[INFO] No more targets on this page. Searching for the next page button...'
+    isLike
+      ? '[INFO] No more posts visible in current view. Scrolling feed down to load next batch...'
+      : '[INFO] No more targets on this page. Searching for the next page button...'
   )
 
   let pageRes
   try {
-    pageRes = await chrome.tabs.sendMessage(tabId, { action: 'GO_NEXT_PAGE' })
+    pageRes = await chrome.tabs.sendMessage(tabId, {
+      action: 'GO_NEXT_PAGE',
+      mode
+    })
   } catch (e) {
     pageRes = { success: false, reason: 'ERROR' }
   }
 
   if (!pageRes?.success) {
     sendLog(
-      '[INFO] All search pages successfully completed! The "Next page" button is no longer available.'
+      isLike
+        ? '[INFO] All posts in the feed have been processed! Reached the bottom of the feed.'
+        : '[INFO] All search pages successfully completed! The "Next page" button is no longer available.'
     )
-    await stopAutomation(
-      '[INFO] Automation finished: reached the end of search results.'
-    )
+    await stopAutomation('[INFO] Automation finished: reached the end.')
     return false
   }
 
   sendLog(
-    '[INFO] Page successfully changed. Waiting for new results to load...'
+    isLike
+      ? '[INFO] Feed scrolled down. Waiting for new posts to render...'
+      : '[INFO] Page successfully changed. Waiting for new results to load...'
   )
-  if (!(await interruptibleSleep(CONFIG.PAGE_LOAD_SLEEP, tabId))) return false
+
+  const sleepTime = isLike ? 3500 : CONFIG.PAGE_LOAD_SLEEP
+  if (!(await interruptibleSleep(sleepTime, tabId))) return false
 
   try {
     await CDPInput.sendCommand(tabId, 'Runtime.evaluate', { expression: '1+1' })
@@ -161,7 +186,52 @@ async function handleSearchPagination (tabId) {
   return true
 }
 
-async function processTargetNode (tabId, targetRes, activeAcc) {
+async function processLikeNode (tabId, targetRes, activeAcc, mode) {
+  const { x, y } = targetRes.coords
+
+  if (!isRunning) return false
+  await CDPInput.trustedClick(tabId, x, y)
+  if (!(await interruptibleSleep(1200, tabId))) return false
+
+  let verifyRes
+  try {
+    verifyRes = await chrome.tabs.sendMessage(tabId, {
+      action: 'VERIFY_POST_LIKED'
+    })
+  } catch (e) {
+    verifyRes = { success: true }
+  }
+
+  if (!isRunning) return false
+
+  await StorageManager.incrementStats(activeAcc, mode)
+  const updatedStats = await StorageManager.getStats(activeAcc, mode)
+  const storageData = await StorageService.get([`maxDaily_like`, 'isWarmedUp'])
+  const currentMaxDaily = storageData.maxDaily_like || 30
+
+  sendLog(`[SUCCESS] Liked post #${updatedStats.dailyCount} for [${activeAcc}]`)
+
+  if (updatedStats.dailyCount >= currentMaxDaily) {
+    sendLog(
+      `[INFO] Daily Like limit reached (${updatedStats.dailyCount}/${currentMaxDaily}). Stopping...`
+    )
+    await recalculateDynamicLimits(
+      tabId,
+      activeAcc,
+      !storageData.isWarmedUp,
+      mode
+    )
+    await stopAutomation(
+      '[INFO] Automation stopped: daily like limit fully exhausted.'
+    )
+    return false
+  }
+
+  const delay = getGaussianDelay(3000, 6000)
+  return interruptibleSleep(delay, tabId)
+}
+
+async function processConnectNode (tabId, targetRes, activeAcc, mode) {
   const { x, y } = targetRes.coords
 
   if (!isRunning) return false
@@ -221,10 +291,14 @@ async function processTargetNode (tabId, targetRes, activeAcc) {
       return false
     }
 
-    await StorageManager.incrementStats(activeAcc)
-    const updatedStats = await StorageManager.getStats(activeAcc)
-    const storageData = await StorageService.get(['maxDaily', 'isWarmedUp'])
-    const currentMaxDaily = storageData.maxDaily || CONFIG.DEFAULT_MAX_DAILY
+    await StorageManager.incrementStats(activeAcc, mode)
+    const updatedStats = await StorageManager.getStats(activeAcc, mode)
+    const storageData = await StorageService.get([
+      `maxDaily_connect`,
+      'isWarmedUp'
+    ])
+    const currentMaxDaily =
+      storageData.maxDaily_connect || CONFIG.DEFAULT_MAX_DAILY
 
     const logType =
       modalRes?.status === 'CLICK_SEND'
@@ -238,7 +312,12 @@ async function processTargetNode (tabId, targetRes, activeAcc) {
       sendLog(
         `[INFO] Daily limit reached (${updatedStats.dailyCount}/${currentMaxDaily}). Recalculating limit for the next day and stopping...`
       )
-      await recalculateDynamicLimits(tabId, activeAcc, !storageData.isWarmedUp)
+      await recalculateDynamicLimits(
+        tabId,
+        activeAcc,
+        !storageData.isWarmedUp,
+        mode
+      )
       await stopAutomation(
         '[INFO] Automation stopped: daily limit fully exhausted.'
       )
@@ -250,7 +329,7 @@ async function processTargetNode (tabId, targetRes, activeAcc) {
   return interruptibleSleep(delay, tabId)
 }
 
-export async function runAutomation (tabId) {
+export async function runAutomation (tabId, mode = 'CONNECT') {
   if (isRunning) return
 
   sendLog('[INFO] Checking LinkedIn interface language...')
@@ -266,7 +345,7 @@ export async function runAutomation (tabId) {
 
   let activeAcc = ''
   try {
-    const initData = await initializeAutomationAccount(tabId)
+    const initData = await initializeAutomationAccount(tabId, mode)
     activeAcc = initData.currentAccountId
   } catch (err) {
     sendLog(
@@ -279,8 +358,8 @@ export async function runAutomation (tabId) {
   await new Promise(r => setTimeout(r, CONFIG.STARTUP_SLEEP))
 
   isRunning = true
-  await StorageService.setBotState('RUNNING', tabId, activeAcc)
-  sendLog('[INFO] Automation started.')
+  await StorageService.setBotState('RUNNING', tabId, activeAcc, mode)
+  sendLog(`[INFO] Automation started in [${mode}] mode.`)
 
   try {
     try {
@@ -295,7 +374,7 @@ export async function runAutomation (tabId) {
       }
 
       activeAcc = stateData.currentAccountId
-      const limitCheck = await checkRateLimitsMiddleware(activeAcc)
+      const limitCheck = await checkRateLimitsMiddleware(activeAcc, mode)
       if (!limitCheck.allowed) {
         sendLog(`[INFO] ${limitCheck.reason} Stopping automation.`)
         break
@@ -304,7 +383,8 @@ export async function runAutomation (tabId) {
       let targetRes
       try {
         targetRes = await chrome.tabs.sendMessage(tabId, {
-          action: 'GET_NEXT_TARGET'
+          action: 'GET_NEXT_TARGET',
+          mode
         })
       } catch (e) {
         targetRes = { status: 'NO_MORE_TARGETS' }
@@ -313,13 +393,18 @@ export async function runAutomation (tabId) {
       if (!isRunning) break
 
       if (!targetRes || targetRes.status === 'NO_MORE_TARGETS') {
-        const shouldContinue = await handleSearchPagination(tabId)
+        const shouldContinue = await handleSearchPagination(tabId, mode)
         if (!shouldContinue) break
         continue
       }
 
       if (targetRes.status === 'TARGET_FOUND') {
-        const success = await processTargetNode(tabId, targetRes, activeAcc)
+        let success = false
+        if (mode === 'LIKE') {
+          success = await processLikeNode(tabId, targetRes, activeAcc, mode)
+        } else {
+          success = await processConnectNode(tabId, targetRes, activeAcc, mode)
+        }
         if (!success) break
       }
     }

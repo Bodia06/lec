@@ -4,11 +4,45 @@ document.addEventListener('DOMContentLoaded', async () => {
   const clearLogBtn = document.getElementById('clearLog')
   const statusBadge = document.getElementById('statusBadge')
   const statusText = document.getElementById('statusText')
+  const statsLabel = document.getElementById('statsLabel')
   const dailyCountEl = document.getElementById('dailyCount')
   const totalLimitEl = document.getElementById('totalLimit')
   const progressFill = document.getElementById('progressFill')
   const progressBar = document.querySelector('.progress-bar')
   const logContainer = document.getElementById('log')
+  const modeBtns = document.querySelectorAll('.mode-btn')
+
+  let currentMode = 'CONNECT'
+
+  const storedConfig = await chrome.storage.local.get(['selectedMode'])
+  if (storedConfig.selectedMode) {
+    currentMode = storedConfig.selectedMode
+    setActiveMode(currentMode)
+  }
+
+  modeBtns.forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const mode = btn.dataset.mode
+      currentMode = mode
+      setActiveMode(mode)
+      await chrome.storage.local.set({ selectedMode: mode })
+      await updateStats()
+    })
+  })
+
+  function setActiveMode (mode) {
+    modeBtns.forEach(b => {
+      if (b.dataset.mode === mode) {
+        b.classList.add('active')
+      } else {
+        b.classList.remove('active')
+      }
+    })
+    if (statsLabel) {
+      statsLabel.textContent =
+        mode === 'LIKE' ? 'Daily Like Limit' : 'Daily Connect Limit'
+    }
+  }
 
   chrome.runtime.sendMessage({ action: 'GET_STATE' }, response => {
     if (response) {
@@ -22,12 +56,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function updateStats () {
     chrome.runtime.sendMessage(
-      { action: 'GET_CURRENT_ACCOUNT' },
+      { action: 'GET_CURRENT_ACCOUNT', mode: currentMode },
       async response => {
         const activeAcc = response?.accountId || 'default_account'
         const max = response?.maxDaily || 10
 
-        const storageKey = `stats_${activeAcc}`
+        const storageKey = `stats_${activeAcc}_${currentMode}`
         const data = await chrome.storage.local.get([storageKey])
         const accountStats = data[storageKey] || { dailyCount: 0 }
         const count = accountStats.dailyCount || 0
@@ -62,13 +96,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (!tab || !tab.url || !tab.url.includes('linkedin.com')) {
       appendLogToDOM(
-        '[ERROR] Please open a LinkedIn page (e.g., Search) to start automation!'
+        '[ERROR] Please open a LinkedIn page (Search or Feed) to start automation!'
       )
       return
     }
 
     updateUIState(true)
-    chrome.runtime.sendMessage({ action: 'START', tabId: tab.id })
+    chrome.runtime.sendMessage({
+      action: 'START',
+      tabId: tab.id,
+      mode: currentMode
+    })
   })
 
   stopBtn.addEventListener('click', () => {
@@ -85,6 +123,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   })
 
   function updateUIState (isRunning) {
+    modeBtns.forEach(btn => (btn.disabled = isRunning))
     if (isRunning) {
       statusBadge.classList.add('active')
       statusText.textContent = 'Running'

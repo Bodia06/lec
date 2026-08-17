@@ -6,15 +6,21 @@ export const StorageService = {
     return chrome.storage.local.set(items)
   },
   async getBotState () {
-    const data = await this.get(['botState', 'activeTabId', 'currentAccountId'])
+    const data = await this.get([
+      'botState',
+      'activeTabId',
+      'currentAccountId',
+      'currentMode'
+    ])
     return {
       botState: data.botState || 'IDLE',
       activeTabId: data.activeTabId || null,
-      currentAccountId: data.currentAccountId || 'default_account'
+      currentAccountId: data.currentAccountId || 'default_account',
+      currentMode: data.currentMode || 'CONNECT'
     }
   },
-  async setBotState (state, tabId = null, accountId = null) {
-    const payload = { botState: state, activeTabId: tabId }
+  async setBotState (state, tabId = null, accountId = null, mode = 'CONNECT') {
+    const payload = { botState: state, activeTabId: tabId, currentMode: mode }
     if (accountId !== null) {
       payload.currentAccountId = accountId
     }

@@ -109,6 +109,57 @@ body {
 	border-color: rgba(63, 185, 80, 0.3);
 }
 
+.mode-selection {
+	background: var(--bg-card);
+	padding: 4px;
+	border-radius: 10px;
+	border: 1px solid var(--border-color);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.mode-toggle {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 6px;
+}
+
+.mode-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	padding: 8px 10px;
+	font-size: 11.5px;
+	font-weight: 600;
+	border-radius: 7px;
+	background: transparent;
+	color: var(--text-secondary);
+	border: 1px solid transparent;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.mode-btn svg {
+	flex-shrink: 0;
+}
+
+.mode-btn:hover:not(.active):not(:disabled) {
+	color: var(--text-main);
+	background: var(--bg-input);
+}
+
+.mode-btn.active {
+	background: var(--primary-solid);
+	color: #ffffff;
+	border-color: rgba(255, 255, 255, 0.1);
+	box-shadow: 0 2px 8px rgba(10, 102, 194, 0.4);
+}
+
+.mode-btn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
 .stats-card {
 	background: var(--bg-card);
 	padding: 12px 14px;
@@ -247,9 +298,11 @@ body {
 .terminal-dot.red {
 	background-color: #ff5f56;
 }
+
 .terminal-dot.yellow {
 	background-color: #ffbd2e;
 }
+
 .terminal-dot.green {
 	background-color: #27c93f;
 }
